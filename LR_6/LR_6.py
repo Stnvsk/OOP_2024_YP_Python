@@ -45,8 +45,8 @@ class ball():
             self.vx = -self.vx / 2
             self.x = 779
 
-    def hittest(self, ob):
-        if abs(ob.x - self.x) <= (self.r + ob.r) and abs(ob.y - self.y) <= (self.r + ob.r):
+    def hittest(self, tar):
+        if abs(tar[0] - self.x) <= (self.r + tar[2]) and abs(tar[1] - self.y) <= (self.r + tar[2]):
             return True
         else:
             return False
@@ -112,69 +112,76 @@ class target():
         self.live = 1
 
     def new_target(self):
-        x = self.x = rnd(600, 780)
-        y = self.y = rnd(300, 550)
+        x = self.x = rnd(100, 740)
+        y = self.y = rnd(100, 540)
         r = self.r = rnd(10, 50)
-        dx = self.dx = rnd(-5, 5)
-        dy = self.dy = rnd(-5, 5)
-        color = self.color = 'red'
-        return [x, y, r, color, dx, dy, r]
+        dx = self.dx = rnd(1, 5)
+        dy = self.dy = rnd(1, 5)
+        color = self.color = choice(['green', 'red'])
+        return [x, y, r, color, dx, dy]
 
-    def draw_target(self, target):
-        canv.coords(self.id, target[0] - target[2], target[1] - target[2], target[0] + target[2], target[1] + target[2])
-        canv.itemconfig(self.id, fill=target[3])
-
-    def move_target(self, target):
-        target[0] += target[4]
-        target[1] += target[5]
-        if target[0] - target[6] < 0 or target[0] + target[6] > 800:
-            target[4] = - target[4]
-        if target[1] - target[6] < 0 or target[1] + target[6] > 600:
-            target[5] = - target[5]
+    def draw_target(self, tar):
+        canv.coords(self.id, tar[0] - tar[2], tar[1] - tar[2], tar[0] + tar[2], tar[1] + tar[2])
+        canv.itemconfig(self.id, fill=tar[3])
 
     def hit(self, points=1):
         self.points += points
         canv.itemconfig(self.id_points, text=self.points)
-        return canv.coords(self.id, -10, -10, -10, -10)
+
+
+def move_target(tar):
+    tar[0] += tar[4]
+    tar[1] += tar[5]
+    if tar[0] - tar[2] < 0 or tar[0] + tar[2] > 800:
+        tar[4] = - tar[4]
+    if tar[1] - tar[2] < 0 or tar[1] + tar[2] > 600:
+        tar[5] = - tar[5]
+
+
+def hit(tar):
+    tar[4] = 0
+    tar[5] = 0
+    tar[3] = ''
 
 
 t1 = target()
+t2 = target()
 screen1 = canv.create_text(400, 300, text='', font='28')
 g1 = gun()
 bullet = 0
 balls = []
-targets = []
 
 
 def new_game(event=''):
-    global gun, t1, screen1, balls, bullet
-    # t1.new_target()
+    global gun, t1, t2, screen1, balls, bullet
     bullet = 0
     balls = []
-    num_of_targets = 1
     canv.bind('<Button-1>', g1.fire2_start)
     canv.bind('<ButtonRelease-1>', g1.fire2_end)
     canv.bind('<Motion>', g1.targetting)
-    z = 0.03
     t1.live = 1
-
-    for i in range(num_of_targets):
-        targets.append(t1.new_target())
-
-    while t1.live or balls:
+    t2.live = 1
+    tar1_list = t1.new_target()
+    tar2_list = t2.new_target()
+    while t1.live or t2.live or balls:
         for b in balls:
             b.move()
-            if b.hittest(t1) and t1.live:
+            if b.hittest(tar1_list) and t1.live:
                 t1.live = 0
                 t1.hit()
-                canv.bind('<Button-1>', '')
-                canv.bind('<ButtonRelease-1>', '')
-                canv.itemconfig(screen1, text='Вы уничтожили цель за ' + str(bullet) + ' выстрелов')
-                targets.remove(t1)
-                targets.append(t1)
-        for t1.new_target in targets:
-            t1.draw_target(target.new_target(t1))
-            t1.move_target(target.new_target(t1))
+                hit(tar1_list)
+            if b.hittest(tar2_list) and t2.live:
+                t2.live = 0
+                t2.hit()
+                hit(tar2_list)
+            if t1.live == 0 and t2.live == 0:
+                canv.itemconfig(screen1, text='Вы уничтожили цели за ' + str(bullet) + ' выстрелов')
+        for _ in tar1_list:
+            t1.draw_target(tar1_list)
+            move_target(tar1_list)
+        for _ in tar2_list:
+            t2.draw_target(tar2_list)
+            move_target(tar2_list)
         canv.update()
         time.sleep(0.03)
         g1.targetting()
